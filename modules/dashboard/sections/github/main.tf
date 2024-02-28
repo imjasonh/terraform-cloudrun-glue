@@ -10,7 +10,6 @@ module "remaining" {
   title  = "GitHub API Rate Limit Remaining"
   filter = concat(var.filter, [
     "metric.type=\"prometheus.googleapis.com/github_rate_limit_remaining/gauge\"",
-    "metric.label.service_name=\"${var.cloudrun_name}\"",
   ])
   group_by_fields = ["resource.label.\"resource\""]
   primary_align   = "ALIGN_MEAN"
@@ -23,7 +22,6 @@ module "limit" {
   title  = "GitHub API Rate Limit"
   filter = concat(var.filter, [
     "metric.type=\"prometheus.googleapis.com/github_rate_limit/gauge\"",
-    "metric.label.service_name=\"${var.cloudrun_name}\"",
   ])
   group_by_fields = ["resource.label.\"resource\""]
   primary_align   = "ALIGN_DELTA"
@@ -35,7 +33,6 @@ module "reset" {
   title  = "Next GitHub API reset"
   filter = concat(var.filter, [
     "metric.type=\"prometheus.googleapis.com/github_rate_limit_remaining_reset/gauge\"",
-    "metric.label.service_name=\"${var.cloudrun_name}\"",
   ])
   group_by_fields = ["resource.label.\"resource\""]
   primary_align   = "ALIGN_DELTA"
