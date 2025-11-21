@@ -164,18 +164,13 @@ resource "google_iap_brand" "project_brand" {
   support_email     = var.iap_support_email
   application_title = "${var.prefix} IAP"
   project           = data.google_project.project.number
-
-  lifecycle {
-    # Prevent destruction to avoid losing the brand if it needs to be reused
-    prevent_destroy = false
-  }
 }
 
 // Create OAuth client for IAP if IAP config not provided
 resource "google_iap_client" "oauth_client" {
   count        = var.iap == null ? 1 : 0
   display_name = "${var.prefix}-iap-client"
-  brand        = try(google_iap_brand.project_brand[0].name, "")
+  brand        = google_iap_brand.project_brand[0].name
 }
 
 locals {
