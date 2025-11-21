@@ -32,7 +32,7 @@ The module provisions:
 4. **Security**
    - IAP-protected backend service (with auto-creation option)
    - Firewall rules for health checks and proxy traffic
-   - Authorization via separate `authorize-internal-alb-caller` module
+   - Authorization via separate `authorize-private-gce-service` module
 
 5. **Observability**
    - 100% request sampling for access logs
@@ -95,7 +95,7 @@ module "internal_alb" {
 
 # Authorize a caller to access the internal ALB in a specific region
 module "authorize_caller_us_central1" {
-  source = "chainguard-dev/common/infra//modules/authorize-internal-alb-caller"
+  source = "chainguard-dev/common/infra//modules/authorize-private-gce-service"
 
   project_id      = var.project_id
   name            = "my-service"  # Must match the name used above

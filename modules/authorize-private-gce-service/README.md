@@ -9,7 +9,7 @@ module "authorize_caller" {
   source = "chainguard-dev/common/infra//modules/authorize-internal-alb-caller"
 
   project_id      = var.project_id
-  name            = "my-service"  # Must match the name used in gce-regional-container-alb
+  name            = "my-service"  # Must match the name used in regional-gce-service
   region          = "us-central1"
   service_account = google_service_account.caller.email
 }
@@ -59,7 +59,7 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_name"></a> [name](#input\_name) | The name of the service (must match the name used in gce-regional-container-alb module). | `string` | n/a | yes |
+| <a name="input_name"></a> [name](#input\_name) | The name of the service (must match the name used in regional-gce-service module). | `string` | n/a | yes |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | The GCP project ID. | `string` | n/a | yes |
 | <a name="input_region"></a> [region](#input\_region) | The region where the internal load balancer frontend forwarding rule is located. | `string` | n/a | yes |
 | <a name="input_service_account"></a> [service\_account](#input\_service\_account) | The email of the service account being authorized to access the internal ALB via IAP. | `string` | n/a | yes |

@@ -7,7 +7,7 @@ variable "project_id" {
 }
 
 variable "name" {
-  description = "The name of the service (must match the name used in gce-regional-container-alb module)."
+  description = "The name of the service (must match the name used in regional-gce-service module)."
   type        = string
 }
 
