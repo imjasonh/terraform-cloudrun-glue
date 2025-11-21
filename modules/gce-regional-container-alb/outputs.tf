@@ -32,7 +32,7 @@ output "instance_group_self_links" {
 output "named_port" {
   description = "The named port mapping for the service."
   value = {
-    name = "http-8080"
-    port = 8080
+    name = "http-${local.primary_port}"
+    port = local.primary_port
   }
 }

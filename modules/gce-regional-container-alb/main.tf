@@ -31,6 +31,10 @@ locals {
 // Container manifest for the GCE instance template
 // This configures Container-Optimized OS to run the specified Docker image
 locals {
+  # Extract the primary port (first port in the list, defaults to 8080)
+  primary_port = length(var.container.ports) > 0 ? var.container.ports[0].container_port : 8080
+  port_name    = length(var.container.ports) > 0 ? var.container.ports[0].name : "http1"
+
   # Build environment variables section if provided
   # Using yamlencode to properly escape special characters
   env_vars = length(var.container.env) > 0 ? [
@@ -40,6 +44,13 @@ locals {
     }
   ] : []
 
+  # Build ports section for the container
+  container_ports = length(var.container.ports) > 0 ? [
+    for port in var.container.ports : {
+      containerPort = port.container_port
+    }
+  ] : null
+
   # Build container spec as a structured object for proper YAML encoding
   container_spec = {
     spec = {
@@ -48,6 +59,7 @@ locals {
         image   = var.container.image
         command = length(var.container.args) > 0 ? var.container.args : null
         env     = length(local.env_vars) > 0 ? local.env_vars : null
+        ports   = local.container_ports
         stdin   = false
         tty     = false
       }]
@@ -112,8 +124,8 @@ resource "google_compute_region_instance_group_manager" "mig" {
   }
 
   named_port {
-    name = "http-8080"
-    port = 8080
+    name = "http-${local.primary_port}"
+    port = local.primary_port
   }
 
   auto_healing_policies {
@@ -124,11 +136,11 @@ resource "google_compute_region_instance_group_manager" "mig" {
 
 // Health check for the backend service
 resource "google_compute_health_check" "http_8080" {
-  name    = "${var.prefix}-http-8080"
+  name    = "${var.prefix}-http-${local.primary_port}"
   project = var.project_id
 
   http_health_check {
-    port         = 8080
+    port         = local.primary_port
     request_path = "/"
   }
 
@@ -163,7 +175,7 @@ resource "google_iap_brand" "project_brand" {
 resource "google_iap_client" "oauth_client" {
   count        = var.iap == null ? 1 : 0
   display_name = "${var.prefix}-iap-client"
-  brand        = google_iap_brand.project_brand[0].name
+  brand        = try(google_iap_brand.project_brand[0].name, "")
 }
 
 locals {
@@ -177,7 +189,7 @@ resource "google_compute_backend_service" "internal_backend" {
   name                  = "${var.prefix}-backend"
   project               = var.project_id
   protocol              = "HTTP"
-  port_name             = "http-8080"
+  port_name             = "http-${local.primary_port}"
   load_balancing_scheme = "INTERNAL_MANAGED"
   health_checks         = [google_compute_health_check.http_8080.id]
 
@@ -243,7 +255,7 @@ resource "google_compute_firewall" "allow_health_check_and_proxy" {
 
   allow {
     protocol = "tcp"
-    ports    = ["8080"]
+    ports    = [tostring(local.primary_port)]
   }
 
   source_ranges = [
