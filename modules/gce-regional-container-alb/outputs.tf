@@ -1,24 +1,9 @@
 // Copyright 2025 Chainguard, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-output "backend_service_name" {
-  description = "The name of the backend service for IAP authorization."
-  value       = google_compute_backend_service.internal_backend.name
-}
-
 output "backend_service_self_link" {
   description = "The self-link of the backend service, required by a separate ALB Frontend module."
   value       = google_compute_backend_service.internal_backend.self_link
-}
-
-output "forwarding_rule_name" {
-  description = "The name of the internal load balancer forwarding rule."
-  value       = google_compute_forwarding_rule.internal_frontend.name
-}
-
-output "lb_frontend_region" {
-  description = "The region of the internal load balancer forwarding rule."
-  value       = google_compute_forwarding_rule.internal_frontend.region
 }
 
 output "instance_group_self_links" {

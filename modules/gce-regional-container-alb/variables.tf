@@ -1,8 +1,8 @@
 // Copyright 2025 Chainguard, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-variable "prefix" {
-  description = "Naming prefix for all resources."
+variable "name" {
+  description = "Name of the service. Resources will be named 'gce-svc-{name}'."
   type        = string
 }
 

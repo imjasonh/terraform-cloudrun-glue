@@ -15,8 +15,10 @@ terraform {
 }
 
 locals {
+  service_name = "gce-svc-${var.name}"
+
   default_labels = {
-    basename(abspath(path.module)) = var.prefix
+    basename(abspath(path.module)) = var.name
     terraform-module               = basename(abspath(path.module))
   }
 
@@ -55,7 +57,7 @@ locals {
   container_spec = {
     spec = {
       containers = [{
-        name    = var.prefix
+        name    = local.service_name
         image   = var.container.image
         command = length(var.container.args) > 0 ? var.container.args : null
         env     = length(local.env_vars) > 0 ? local.env_vars : null
@@ -73,10 +75,10 @@ locals {
 
 // Instance template for Container-Optimized OS VMs
 resource "google_compute_instance_template" "container_vm" {
-  name_prefix  = "${var.prefix}-"
+  name_prefix  = "${local.service_name}-"
   project      = var.project_id
   machine_type = var.machine_type
-  tags         = ["${var.prefix}-backend"]
+  tags         = ["${local.service_name}-backend"]
 
   labels = local.merged_labels
 
@@ -112,11 +114,11 @@ resource "google_compute_instance_template" "container_vm" {
 resource "google_compute_region_instance_group_manager" "mig" {
   for_each = toset(var.regions)
 
-  name    = "${var.prefix}-${each.key}"
+  name    = "${local.service_name}-${each.key}"
   project = var.project_id
   region  = each.key
 
-  base_instance_name = "${var.prefix}-${each.key}"
+  base_instance_name = "${local.service_name}-${each.key}"
   target_size        = var.instance_count
 
   version {
@@ -136,7 +138,7 @@ resource "google_compute_region_instance_group_manager" "mig" {
 
 // Health check for the backend service
 resource "google_compute_health_check" "http_8080" {
-  name    = "${var.prefix}-http-${local.primary_port}"
+  name    = "${local.service_name}-http-${local.primary_port}"
   project = var.project_id
 
   http_health_check {
@@ -162,14 +164,14 @@ data "google_project" "project" {
 resource "google_iap_brand" "project_brand" {
   count             = var.iap == null ? 1 : 0
   support_email     = var.iap_support_email
-  application_title = "${var.prefix} IAP"
+  application_title = "${var.name} IAP"
   project           = data.google_project.project.number
 }
 
 // Create OAuth client for IAP if IAP config not provided
 resource "google_iap_client" "oauth_client" {
   count        = var.iap == null ? 1 : 0
-  display_name = "${var.prefix}-iap-client"
+  display_name = "${local.service_name}-iap-client"
   brand        = google_iap_brand.project_brand[0].name
 }
 
@@ -181,7 +183,7 @@ locals {
 
 // Backend service with IAP and logging enabled
 resource "google_compute_backend_service" "internal_backend" {
-  name                  = "${var.prefix}-backend"
+  name                  = local.service_name
   project               = var.project_id
   protocol              = "HTTP"
   port_name             = "http-${local.primary_port}"
@@ -214,21 +216,21 @@ resource "google_compute_backend_service" "internal_backend" {
 
 // URL map that routes all traffic to the backend service
 resource "google_compute_url_map" "internal_urlmap" {
-  name            = "${var.prefix}-urlmap"
+  name            = "${local.service_name}-urlmap"
   project         = var.project_id
   default_service = google_compute_backend_service.internal_backend.id
 }
 
 // HTTP proxy for the URL map
 resource "google_compute_target_http_proxy" "internal_proxy" {
-  name    = "${var.prefix}-proxy"
+  name    = "${local.service_name}-proxy"
   project = var.project_id
   url_map = google_compute_url_map.internal_urlmap.id
 }
 
 // Internal forwarding rule (Load Balancer frontend)
 resource "google_compute_forwarding_rule" "internal_frontend" {
-  name                  = "${var.prefix}-frontend"
+  name                  = "${local.service_name}-${var.lb_frontend_region}"
   project               = var.project_id
   region                = var.lb_frontend_region
   ip_protocol           = "TCP"
@@ -244,7 +246,7 @@ resource "google_compute_forwarding_rule" "internal_frontend" {
 
 // Firewall rule to allow health check and proxy traffic
 resource "google_compute_firewall" "allow_health_check_and_proxy" {
-  name    = "${var.prefix}-allow-health-proxy"
+  name    = "${local.service_name}-allow-health-proxy"
   project = var.project_id
   network = var.network_self_link
 
@@ -258,5 +260,5 @@ resource "google_compute_firewall" "allow_health_check_and_proxy" {
     "35.191.0.0/16",  // Google Cloud proxy IPs
   ]
 
-  target_tags = ["${var.prefix}-backend"]
+  target_tags = ["${local.service_name}-backend"]
 }

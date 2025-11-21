@@ -6,19 +6,14 @@ variable "project_id" {
   type        = string
 }
 
-variable "prefix" {
-  description = "The naming prefix used when creating the ALB resources (must match the prefix used in gce-regional-container-alb module)."
+variable "name" {
+  description = "The name of the service (must match the name used in gce-regional-container-alb module)."
   type        = string
 }
 
-variable "lb_frontend_region" {
+variable "region" {
   description = "The region where the internal load balancer frontend forwarding rule is located."
   type        = string
-}
-
-variable "regions" {
-  description = "List of regions where the service is available (used to create the region-to-IP mapping)."
-  type        = list(string)
 }
 
 variable "service_account" {

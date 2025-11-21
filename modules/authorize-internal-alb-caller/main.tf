@@ -13,7 +13,7 @@ terraform {
 // Look up the backend service by name
 data "google_compute_backend_service" "backend" {
   project = var.project_id
-  name    = "${var.prefix}-backend"
+  name    = "gce-svc-${var.name}"
 }
 
 // Grant IAP access to the service account
@@ -24,11 +24,11 @@ resource "google_iap_web_backend_service_iam_member" "authorize-calls" {
   member              = "serviceAccount:${var.service_account}"
 }
 
-// Look up the forwarding rule in the frontend region
+// Look up the forwarding rule in the specified region
 data "google_compute_forwarding_rule" "internal_alb" {
   depends_on = [google_iap_web_backend_service_iam_member.authorize-calls]
 
   project = var.project_id
-  name    = "${var.prefix}-frontend"
-  region  = var.lb_frontend_region
+  name    = "gce-svc-${var.name}-${var.region}"
+  region  = var.region
 }

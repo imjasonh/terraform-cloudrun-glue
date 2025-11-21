@@ -45,7 +45,7 @@ The module provisions:
 module "internal_alb" {
   source = "chainguard-dev/common/infra//modules/gce-regional-container-alb"
 
-  prefix                    = "my-service"
+  name                      = "my-service"  # Resources will be named gce-svc-my-service
   project_id                = var.project_id
   regions                   = ["us-central1", "us-east1"]
   network_self_link         = module.vpc.network_self_link
@@ -93,23 +93,19 @@ module "internal_alb" {
   }
 }
 
-# Authorize a caller to access the internal ALB
-module "authorize_caller" {
+# Authorize a caller to access the internal ALB in a specific region
+module "authorize_caller_us_central1" {
   source = "chainguard-dev/common/infra//modules/authorize-internal-alb-caller"
 
-  project_id         = var.project_id
-  prefix             = "my-service"  # Must match the prefix used above
-  lb_frontend_region = module.internal_alb.lb_frontend_region
-  regions            = ["us-central1", "us-east1"]
-  service_account    = google_service_account.caller.email
+  project_id      = var.project_id
+  name            = "my-service"  # Must match the name used above
+  region          = "us-central1"
+  service_account = google_service_account.caller.email
 }
 
-# Access the service in any region
-output "service_urls" {
-  value = {
-    for region, ip in module.authorize_caller.ip_addresses :
-    region => "http://${ip}"
-  }
+# Use the IP address to connect to the service
+output "service_url" {
+  value = "http://${module.authorize_caller_us_central1.ip_address}"
 }
 ```
 
@@ -167,8 +163,8 @@ No modules.
 | <a name="input_lb_frontend_region"></a> [lb\_frontend\_region](#input\_lb\_frontend\_region) | Region for the internal load balancer frontend forwarding rule. | `string` | n/a | yes |
 | <a name="input_lb_proxy_subnet_self_link"></a> [lb\_proxy\_subnet\_self\_link](#input\_lb\_proxy\_subnet\_self\_link) | Proxy-only subnet self-link for the load balancer frontend. | `string` | n/a | yes |
 | <a name="input_machine_type"></a> [machine\_type](#input\_machine\_type) | VM machine type for the instances. | `string` | n/a | yes |
+| <a name="input_name"></a> [name](#input\_name) | Name of the service. Resources will be named 'gce-svc-{name}'. | `string` | n/a | yes |
 | <a name="input_network_self_link"></a> [network\_self\_link](#input\_network\_self\_link) | VPC network self-link (e.g., from module.vpc.network\_self\_link). | `string` | n/a | yes |
-| <a name="input_prefix"></a> [prefix](#input\_prefix) | Naming prefix for all resources. | `string` | n/a | yes |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | GCP Project ID. | `string` | n/a | yes |
 | <a name="input_regions"></a> [regions](#input\_regions) | List of regions to deploy MIG backends to. | `list(string)` | n/a | yes |
 | <a name="input_service_account_email"></a> [service\_account\_email](#input\_service\_account\_email) | Service account email for the GCE VMs. | `string` | n/a | yes |
@@ -179,10 +175,7 @@ No modules.
 
 | Name | Description |
 |------|-------------|
-| <a name="output_backend_service_name"></a> [backend\_service\_name](#output\_backend\_service\_name) | The name of the backend service for IAP authorization. |
 | <a name="output_backend_service_self_link"></a> [backend\_service\_self\_link](#output\_backend\_service\_self\_link) | The self-link of the backend service, required by a separate ALB Frontend module. |
-| <a name="output_forwarding_rule_name"></a> [forwarding\_rule\_name](#output\_forwarding\_rule\_name) | The name of the internal load balancer forwarding rule. |
 | <a name="output_instance_group_self_links"></a> [instance\_group\_self\_links](#output\_instance\_group\_self\_links) | Map of region to MIG instance group self-link. |
-| <a name="output_lb_frontend_region"></a> [lb\_frontend\_region](#output\_lb\_frontend\_region) | The region of the internal load balancer forwarding rule. |
 | <a name="output_named_port"></a> [named\_port](#output\_named\_port) | The named port mapping for the service. |
 <!-- END_TF_DOCS -->
