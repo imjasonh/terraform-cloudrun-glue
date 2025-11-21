@@ -89,9 +89,14 @@ variable "iap" {
 }
 
 variable "iap_support_email" {
-  description = "Support email for IAP brand creation. Required if iap is not provided and IAP brand doesn't exist."
+  description = "Support email for IAP brand creation. Required if iap is not provided."
   type        = string
   default     = ""
+
+  validation {
+    condition     = var.iap != null || var.iap_support_email != ""
+    error_message = "iap_support_email must be provided when iap is not specified (for IAP brand auto-creation)."
+  }
 }
 
 

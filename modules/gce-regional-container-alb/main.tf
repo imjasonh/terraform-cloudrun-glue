@@ -32,25 +32,31 @@ locals {
 // This configures Container-Optimized OS to run the specified Docker image
 locals {
   # Build environment variables section if provided
-  env_vars = length(var.container.env) > 0 ? indent(8, join("\n", [
-    for env in var.container.env :
-    "- name: ${env.name}\n        value: '${env.value}'"
-  ])) : ""
+  # Using yamlencode to properly escape special characters
+  env_vars = length(var.container.env) > 0 ? [
+    for env in var.container.env : {
+      name  = env.name
+      value = env.value
+    }
+  ] : []
 
-  # Build args section if provided
-  args_section = length(var.container.args) > 0 ? indent(8, "command:\n${join("\n", [for arg in var.container.args : "        - ${arg}"])}") : ""
+  # Build container spec as a structured object for proper YAML encoding
+  container_spec = {
+    spec = {
+      containers = [{
+        name    = var.prefix
+        image   = var.container.image
+        command = length(var.container.args) > 0 ? var.container.args : null
+        env     = length(local.env_vars) > 0 ? local.env_vars : null
+        stdin   = false
+        tty     = false
+      }]
+      restartPolicy = "Always"
+    }
+  }
 
-  container_manifest = <<-EOT
-    spec:
-      containers:
-      - name: ${var.prefix}
-        image: ${var.container.image}
-${local.args_section != "" ? local.args_section : ""}
-${local.env_vars != "" ? "        env:\n${local.env_vars}" : ""}
-        stdin: false
-        tty: false
-      restartPolicy: Always
-  EOT
+  # Use yamlencode to safely generate the manifest
+  container_manifest = yamlencode(local.container_spec)
 }
 
 // Instance template for Container-Optimized OS VMs
@@ -138,12 +144,19 @@ data "google_project" "project" {
 }
 
 // Create IAP brand if IAP config not provided
-// Note: Only one brand can exist per project, so this may fail if a brand already exists
+// Note: Only one brand can exist per project. If a brand already exists,
+// you must provide the iap variable with existing OAuth credentials.
+// The IAP brand/client APIs are deprecated and will be shut down March 19, 2026.
 resource "google_iap_brand" "project_brand" {
   count             = var.iap == null ? 1 : 0
   support_email     = var.iap_support_email
   application_title = "${var.prefix} IAP"
   project           = data.google_project.project.number
+
+  lifecycle {
+    # Prevent destruction to avoid losing the brand if it needs to be reused
+    prevent_destroy = false
+  }
 }
 
 // Create OAuth client for IAP if IAP config not provided
@@ -155,8 +168,8 @@ resource "google_iap_client" "oauth_client" {
 
 locals {
   # Use provided IAP config or created OAuth client
-  iap_client_id     = var.iap != null ? var.iap.oauth2_client_id : google_iap_client.oauth_client[0].client_id
-  iap_client_secret = var.iap != null ? var.iap.oauth2_client_secret : google_iap_client.oauth_client[0].secret
+  iap_client_id     = var.iap != null ? var.iap.oauth2_client_id : try(google_iap_client.oauth_client[0].client_id, "")
+  iap_client_secret = var.iap != null ? var.iap.oauth2_client_secret : try(google_iap_client.oauth_client[0].secret, "")
 }
 
 // Backend service with IAP and logging enabled
