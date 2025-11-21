@@ -30,9 +30,9 @@ The module provisions:
    - Internal forwarding rule with global access enabled
 
 4. **Security**
-   - IAP-protected backend service
-   - IAM bindings for authorized service accounts
+   - IAP-protected backend service (with auto-creation option)
    - Firewall rules for health checks and proxy traffic
+   - Authorization via separate `authorize-internal-alb-caller` module
 
 5. **Observability**
    - 100% request sampling for access logs
@@ -45,22 +45,41 @@ The module provisions:
 module "internal_alb" {
   source = "chainguard-dev/common/infra//modules/gce-regional-container-alb"
 
-  prefix                      = "my-service"
-  project_id                  = var.project_id
-  regions                     = ["us-central1", "us-east1"]
-  network_self_link           = module.vpc.network_self_link
-  subnetwork_self_link        = module.vpc.subnets_self_links["us-central1"]
-  lb_proxy_subnet_self_link   = module.vpc.proxy_subnet_self_link
-  lb_frontend_region          = "us-central1"
-  service_account_email       = google_service_account.vm_sa.email
-  container_image             = "gcr.io/my-project/my-image:latest"
+  prefix                    = "my-service"
+  project_id                = var.project_id
+  regions                   = ["us-central1", "us-east1"]
+  network_self_link         = module.vpc.network_self_link
+  subnetwork_self_link      = module.vpc.subnets_self_links["us-central1"]
+  lb_proxy_subnet_self_link = module.vpc.proxy_subnet_self_link
+  lb_frontend_region        = "us-central1"
+  service_account_email     = google_service_account.vm_sa.email
   
-  # IAP Configuration
-  iap_oauth_client_id         = var.iap_client_id
-  iap_oauth_client_secret     = var.iap_client_secret
-  authorized_service_accounts = [
-    "my-service@my-project.iam.gserviceaccount.com"
-  ]
+  # Container specification
+  container = {
+    image = "gcr.io/my-project/my-image:latest"
+    args  = ["--port=8080"]
+    env = [
+      {
+        name  = "ENV_VAR"
+        value = "value"
+      }
+    ]
+    ports = [
+      {
+        name           = "http1"
+        container_port = 8080
+      }
+    ]
+  }
+
+  # Optional: IAP Configuration (will be auto-created if not provided)
+  iap = {
+    oauth2_client_id     = var.iap_client_id
+    oauth2_client_secret = var.iap_client_secret
+  }
+  
+  # Required if IAP is not provided
+  # iap_support_email = "support@example.com"
 
   # Optional: Resource Configuration
   machine_type   = "e2-medium"
@@ -73,14 +92,30 @@ module "internal_alb" {
     environment = "production"
   }
 }
+
+# Authorize a caller to access the internal ALB
+module "authorize_caller" {
+  source = "chainguard-dev/common/infra//modules/authorize-internal-alb-caller"
+
+  project_id           = var.project_id
+  region               = module.internal_alb.lb_frontend_region
+  backend_service_name = module.internal_alb.backend_service_name
+  forwarding_rule_name = module.internal_alb.forwarding_rule_name
+  service_account      = google_service_account.caller.email
+}
+
+# Access the service using the IP from the authorize module
+output "service_url" {
+  value = "http://${module.authorize_caller.ip_address}"
+}
 ```
 
 ## Requirements
 
-- The container image must listen on port 8080
+- The container must listen on port 8080 (configurable via `container.ports`)
 - A VPC network with appropriate subnets must exist
 - A proxy-only subnet must be configured for the load balancer
-- IAP OAuth credentials must be created in advance
+- If IAP is not provided, `iap_support_email` is required for auto-creation
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
@@ -112,17 +147,18 @@ No modules.
 | [google_compute_region_instance_group_manager.mig](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_region_instance_group_manager) | resource |
 | [google_compute_target_http_proxy.internal_proxy](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_target_http_proxy) | resource |
 | [google_compute_url_map.internal_urlmap](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_url_map) | resource |
-| [google_iap_web_backend_service_iam_member.access_grant](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/iap_web_backend_service_iam_member) | resource |
+| [google_iap_brand.project_brand](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/iap_brand) | resource |
+| [google_iap_client.oauth_client](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/iap_client) | resource |
+| [google_project.project](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/project) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_authorized_service_accounts"></a> [authorized\_service\_accounts](#input\_authorized\_service\_accounts) | List of service account emails to grant IAP access (roles/iap.httpsResourceAccessor). | `list(string)` | `[]` | no |
-| <a name="input_container_image"></a> [container\_image](#input\_container\_image) | Docker image URL to run in the container. | `string` | n/a | yes |
+| <a name="input_container"></a> [container](#input\_container) | Container specification including image, args, env, and ports. | <pre>object({<br/>    image = string<br/>    args  = optional(list(string), [])<br/>    env = optional(list(object({<br/>      name  = string<br/>      value = string<br/>    })), [])<br/>    ports = optional(list(object({<br/>      name           = optional(string, "http1")<br/>      container_port = number<br/>    })), [{<br/>      name           = "http1"<br/>      container_port = 8080<br/>    }])<br/>  })</pre> | n/a | yes |
 | <a name="input_disk_size_gb"></a> [disk\_size\_gb](#input\_disk\_size\_gb) | Boot disk size in GB for each VM. | `number` | `20` | no |
-| <a name="input_iap_oauth_client_id"></a> [iap\_oauth\_client\_id](#input\_iap\_oauth\_client\_id) | IAP OAuth Client ID for securing the backend service. | `string` | n/a | yes |
-| <a name="input_iap_oauth_client_secret"></a> [iap\_oauth\_client\_secret](#input\_iap\_oauth\_client\_secret) | IAP OAuth Client Secret for securing the backend service. | `string` | n/a | yes |
+| <a name="input_iap"></a> [iap](#input\_iap) | IAP configuration for the backend service. If not provided, a new IAP brand and OAuth client will be created. | <pre>object({<br/>    oauth2_client_id     = string<br/>    oauth2_client_secret = string<br/>  })</pre> | `null` | no |
+| <a name="input_iap_support_email"></a> [iap\_support\_email](#input\_iap\_support\_email) | Support email for IAP brand creation. Required if iap is not provided and IAP brand doesn't exist. | `string` | `""` | no |
 | <a name="input_instance_count"></a> [instance\_count](#input\_instance\_count) | Number of instances per regional MIG. | `number` | `2` | no |
 | <a name="input_labels"></a> [labels](#input\_labels) | Additional labels to apply to resources. | `map(string)` | `{}` | no |
 | <a name="input_lb_frontend_region"></a> [lb\_frontend\_region](#input\_lb\_frontend\_region) | Region for the internal load balancer frontend forwarding rule. | `string` | n/a | yes |
@@ -140,8 +176,10 @@ No modules.
 
 | Name | Description |
 |------|-------------|
+| <a name="output_backend_service_name"></a> [backend\_service\_name](#output\_backend\_service\_name) | The name of the backend service for IAP authorization. |
 | <a name="output_backend_service_self_link"></a> [backend\_service\_self\_link](#output\_backend\_service\_self\_link) | The self-link of the backend service, required by a separate ALB Frontend module. |
+| <a name="output_forwarding_rule_name"></a> [forwarding\_rule\_name](#output\_forwarding\_rule\_name) | The name of the internal load balancer forwarding rule. |
 | <a name="output_instance_group_self_links"></a> [instance\_group\_self\_links](#output\_instance\_group\_self\_links) | Map of region to MIG instance group self-link. |
-| <a name="output_load_balancer_ip"></a> [load\_balancer\_ip](#output\_load\_balancer\_ip) | The private IP address of the internal load balancer for clients to access the service. |
+| <a name="output_lb_frontend_region"></a> [lb\_frontend\_region](#output\_lb\_frontend\_region) | The region of the internal load balancer forwarding rule. |
 | <a name="output_named_port"></a> [named\_port](#output\_named\_port) | The named port mapping for the service. |
 <!-- END_TF_DOCS -->

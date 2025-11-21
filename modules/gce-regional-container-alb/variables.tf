@@ -41,9 +41,23 @@ variable "service_account_email" {
   type        = string
 }
 
-variable "container_image" {
-  description = "Docker image URL to run in the container."
-  type        = string
+variable "container" {
+  description = "Container specification including image, args, env, and ports."
+  type = object({
+    image = string
+    args  = optional(list(string), [])
+    env = optional(list(object({
+      name  = string
+      value = string
+    })), [])
+    ports = optional(list(object({
+      name           = optional(string, "http1")
+      container_port = number
+      })), [{
+      name           = "http1"
+      container_port = 8080
+    }])
+  })
 }
 
 variable "machine_type" {
@@ -64,22 +78,23 @@ variable "instance_count" {
   default     = 2
 }
 
-variable "iap_oauth_client_id" {
-  description = "IAP OAuth Client ID for securing the backend service."
-  type        = string
+variable "iap" {
+  description = "IAP configuration for the backend service. If not provided, a new IAP brand and OAuth client will be created."
+  type = object({
+    oauth2_client_id     = string
+    oauth2_client_secret = string
+  })
+  default   = null
+  sensitive = true
 }
 
-variable "iap_oauth_client_secret" {
-  description = "IAP OAuth Client Secret for securing the backend service."
+variable "iap_support_email" {
+  description = "Support email for IAP brand creation. Required if iap is not provided and IAP brand doesn't exist."
   type        = string
-  sensitive   = true
+  default     = ""
 }
 
-variable "authorized_service_accounts" {
-  description = "List of service account emails to grant IAP access (roles/iap.httpsResourceAccessor)."
-  type        = list(string)
-  default     = []
-}
+
 
 variable "labels" {
   description = "Additional labels to apply to resources."
