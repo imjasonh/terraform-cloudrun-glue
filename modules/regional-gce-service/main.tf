@@ -169,11 +169,7 @@ resource "google_compute_health_check" "http_8080" {
   unhealthy_threshold = 3
 }
 
-// Use provided IAP OAuth credentials
-// Note: IAP OAuth credentials must be manually created in the Google Cloud Console
-// before using this module, as the IAP OAuth Admin APIs have been deprecated.
-
-// Regional backend services with IAP and logging enabled (one per region)
+// Regional backend services with logging enabled (one per region)
 resource "google_compute_region_backend_service" "internal_backend" {
   for_each = var.regions
 
@@ -190,13 +186,6 @@ resource "google_compute_region_backend_service" "internal_backend" {
     group           = google_compute_region_instance_group_manager.mig[each.key].instance_group
     balancing_mode  = "UTILIZATION"
     capacity_scaler = 1.0
-  }
-
-  // Enable IAP
-  iap {
-    enabled              = true
-    oauth2_client_id     = var.iap.oauth2_client_id
-    oauth2_client_secret = var.iap.oauth2_client_secret
   }
 
   // Enable request logging for observability

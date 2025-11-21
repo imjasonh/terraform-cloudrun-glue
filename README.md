@@ -72,14 +72,16 @@ No requirements.
 | <a name="module_frontend-calls-backend"></a> [frontend-calls-backend](#module\_frontend-calls-backend) | ./modules/authorize-private-gce-service | n/a |
 | <a name="module_networking"></a> [networking](#module\_networking) | ./modules/networking | n/a |
 | <a name="module_regional-gce-service"></a> [regional-gce-service](#module\_regional-gce-service) | ./modules/regional-gce-service | n/a |
+| <a name="module_regional-go-service"></a> [regional-go-service](#module\_regional-go-service) | ./modules/regional-go-service | n/a |
 
 ## Resources
 
 | Name | Type |
 |------|------|
-| [google_service_account.caller](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_account) | resource |
+| [google_service_account.frontend](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_account) | resource |
 | [google_service_account.sa](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_account) | resource |
-| [ko_build.image](https://registry.terraform.io/providers/ko-build/ko/latest/docs/resources/build) | resource |
+| [ko_build.backend](https://registry.terraform.io/providers/ko-build/ko/latest/docs/resources/build) | resource |
+| [ko_build.frontend](https://registry.terraform.io/providers/ko-build/ko/latest/docs/resources/build) | resource |
 
 ## Inputs
 
@@ -90,4 +92,5 @@ No inputs.
 | Name | Description |
 |------|-------------|
 | <a name="output_backends"></a> [backends](#output\_backends) | n/a |
+| <a name="output_frontends"></a> [frontends](#output\_frontends) | n/a |
 <!-- END_TF_DOCS -->

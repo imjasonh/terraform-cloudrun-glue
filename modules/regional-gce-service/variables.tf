@@ -66,17 +66,6 @@ variable "instance_count" {
   type        = number
 }
 
-variable "iap" {
-  description = "IAP OAuth2 credentials for the backend service. Must be manually created in the Google Cloud Console (APIs & Services > Credentials)."
-  type = object({
-    oauth2_client_id     = string
-    oauth2_client_secret = string
-  })
-  sensitive = true
-}
-
-
-
 variable "labels" {
   description = "Additional labels to apply to resources."
   type        = map(string)

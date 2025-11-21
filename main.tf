@@ -47,11 +47,6 @@ module "regional-gce-service" {
   service_account = google_service_account.sa.email
   disk_size_gb    = 20
 
-  iap = {
-    oauth2_client_id     = "example-client-id.apps.googleusercontent.com"
-    oauth2_client_secret = "example-secret"
-  }
-
   container = {
     image = ko_build.backend.image_ref
   }
@@ -82,7 +77,7 @@ module "regional-go-service" {
       }
       ports = [{ container_port = 8080 }]
       regional-env = [{
-        name = "BACKEND_ADDRESS", value = { for k, v in module.frontend-calls-backend : k => "http://${v.ip_address}" }
+        name = "BACKEND_ADDRESS", value = { for k, v in module.frontend-calls-backend : k => v.addr }
       }]
     }
   }
@@ -101,7 +96,7 @@ module "frontend-calls-backend" {
 }
 
 output "backends" {
-  value = { for k, v in module.frontend-calls-backend : k => v.ip_address }
+  value = { for k, v in module.frontend-calls-backend : k => v.addr }
 }
 
 output "frontends" {

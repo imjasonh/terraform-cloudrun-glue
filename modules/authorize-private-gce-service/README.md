@@ -16,7 +16,7 @@ module "authorize_caller" {
 
 # Use the IP address to connect to the service
 output "service_url" {
-  value = "http://${module.authorize_caller.ip_address}"
+  value = "http://${module.authorize_caller.addr}"
 }
 ```
 
@@ -66,5 +66,5 @@ No modules.
 
 | Name | Description |
 |------|-------------|
-| <a name="output_ip_address"></a> [ip\_address](#output\_ip\_address) | The private IP address of the internal load balancer. |
+| <a name="output_addr"></a> [addr](#output\_addr) | The private IP address of the internal load balancer. |
 <!-- END_TF_DOCS -->

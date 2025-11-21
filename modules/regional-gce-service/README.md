@@ -109,11 +109,14 @@ output "service_url" {
 
 - The container must listen on port 8080 (configurable via `container.ports`)
 - A VPC network with appropriate subnets must exist for each region
-- **IAP OAuth2 credentials must be manually created** in the Google Cloud Console:
-  1. Go to **APIs & Services > OAuth consent screen** and create your consent screen
-  2. Go to **APIs & Services > Credentials**
-  3. Create **OAuth 2.0 Client ID** (Application type: Web application)
-  4. Save the Client ID and Client Secret to pass to the `iap` variable
+- **Identity-Aware Proxy (IAP) must be manually enabled** in the Google Cloud Console:
+  1. Go to **Security > Identity-Aware Proxy**
+  2. Select each regional backend service created by this module (named `gce-svc-{name}-{region}`)
+  3. Click **Turn on IAP**
+  4. Choose **Google-Managed OAuth** (recommended)
+  5. Use the `authorize-private-gce-service` module to grant IAP access to service accounts via Terraform
+
+  Note: Google-managed OAuth cannot be configured via Terraform - it must be enabled through the Console UI
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
@@ -151,7 +154,6 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_container"></a> [container](#input\_container) | Container specification including image, args, env, and ports. | <pre>object({<br/>    image = string<br/>    args  = optional(list(string), [])<br/>    env = optional(list(object({<br/>      name  = string<br/>      value = string<br/>    })), [])<br/>    /* TODO<br/>    regional-env = optional(list(object({<br/>      name  = string<br/>      value = map(string)<br/>    })), [])<br/>    */<br/>    ports = optional(list(object({<br/>      name           = optional(string, "http1")<br/>      container_port = number<br/>      })), [{<br/>      name           = "http1"<br/>      container_port = 8080<br/>    }])<br/>  })</pre> | n/a | yes |
 | <a name="input_disk_size_gb"></a> [disk\_size\_gb](#input\_disk\_size\_gb) | Boot disk size in GB for each VM. | `number` | n/a | yes |
-| <a name="input_iap"></a> [iap](#input\_iap) | IAP OAuth2 credentials for the backend service. Must be manually created in the Google Cloud Console (APIs & Services > Credentials). | <pre>object({<br/>    oauth2_client_id     = string<br/>    oauth2_client_secret = string<br/>  })</pre> | n/a | yes |
 | <a name="input_instance_count"></a> [instance\_count](#input\_instance\_count) | Number of instances per regional MIG. | `number` | n/a | yes |
 | <a name="input_labels"></a> [labels](#input\_labels) | Additional labels to apply to resources. | `map(string)` | `{}` | no |
 | <a name="input_machine_type"></a> [machine\_type](#input\_machine\_type) | VM machine type for the instances. | `string` | n/a | yes |
