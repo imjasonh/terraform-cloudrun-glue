@@ -43,50 +43,46 @@ The module provisions:
 
 ```hcl
 module "internal_alb" {
-  source = "chainguard-dev/common/infra//modules/gce-regional-container-alb"
+  source = "chainguard-dev/common/infra//modules/regional-gce-service"
 
-  name                      = "my-service"  # Resources will be named gce-svc-my-service
-  project_id                = var.project_id
-  regions                   = ["us-central1", "us-east1"]
-  network_self_link         = module.vpc.network_self_link
-  subnetwork_self_link      = module.vpc.subnets_self_links["us-central1"]
-  lb_proxy_subnet_self_link = module.vpc.proxy_subnet_self_link
-  lb_frontend_region        = "us-central1"
-  service_account_email     = google_service_account.vm_sa.email
+  name            = "my-service"  # Resources will be named gce-svc-my-service
+  project_id      = var.project_id
+  service_account = google_service_account.vm_sa.email
+
+  regions = {
+    "us-central1" = {
+      network = module.vpc.network_self_link
+      subnet  = module.vpc.subnets_self_links["us-central1"]
+    }
+    "us-east1" = {
+      network = module.vpc.network_self_link
+      subnet  = module.vpc.subnets_self_links["us-east1"]
+    }
+  }
   
   # Container specification
   container = {
     image = "gcr.io/my-project/my-image:latest"
-    args  = ["--port=8080"]
+    args  = ["--foo=bar"]
     env = [
       {
-        name  = "ENV_VAR"
-        value = "value"
-      }
-    ]
-    ports = [
-      {
-        name           = "http1"
-        container_port = 8080
+        name  = "FOO"
+        value = "bar"
       }
     ]
   }
 
-  # Optional: IAP Configuration (will be auto-created if not provided)
+  # Required: IAP OAuth2 credentials (must be manually created in GCP Console; can be reused for multiple services)
   iap = {
     oauth2_client_id     = var.iap_client_id
     oauth2_client_secret = var.iap_client_secret
   }
-  
-  # Required if IAP is not provided
-  # iap_support_email = "support@example.com"
 
-  # Required: Resource Configuration
+  # Resource Configuration
   machine_type   = "e2-medium"
   disk_size_gb   = 20
   instance_count = 2
 
-  # Labels
   squad  = "platform"
   labels = {
     environment = "production"
@@ -112,23 +108,23 @@ output "service_url" {
 ## Requirements
 
 - The container must listen on port 8080 (configurable via `container.ports`)
-- A VPC network with appropriate subnets must exist
-- A proxy-only subnet must be configured for the load balancer
-- If IAP is not provided, `iap_support_email` is required for auto-creation
+- A VPC network with appropriate subnets must exist for each region
+- **IAP OAuth2 credentials must be manually created** in the Google Cloud Console:
+  1. Go to **APIs & Services > OAuth consent screen** and create your consent screen
+  2. Go to **APIs & Services > Credentials**
+  3. Create **OAuth 2.0 Client ID** (Application type: Web application)
+  4. Save the Client ID and Client Secret to pass to the `iap` variable
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
-| Name | Version |
-|------|---------|
-| <a name="requirement_google"></a> [google](#requirement\_google) | >= 4.79 |
-| <a name="requirement_google-beta"></a> [google-beta](#requirement\_google-beta) | >= 4.79 |
+No requirements.
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_google"></a> [google](#provider\_google) | >= 4.79 |
+| <a name="provider_google"></a> [google](#provider\_google) | n/a |
 
 ## Modules
 
@@ -138,44 +134,34 @@ No modules.
 
 | Name | Type |
 |------|------|
-| [google_compute_backend_service.internal_backend](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_backend_service) | resource |
 | [google_compute_firewall.allow_health_check_and_proxy](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_firewall) | resource |
 | [google_compute_forwarding_rule.internal_frontend](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_forwarding_rule) | resource |
 | [google_compute_health_check.http_8080](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_health_check) | resource |
 | [google_compute_instance_template.container_vm](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance_template) | resource |
+| [google_compute_region_backend_service.internal_backend](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_region_backend_service) | resource |
 | [google_compute_region_instance_group_manager.mig](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_region_instance_group_manager) | resource |
-| [google_compute_target_http_proxy.internal_proxy](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_target_http_proxy) | resource |
-| [google_compute_url_map.internal_urlmap](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_url_map) | resource |
-| [google_iap_brand.project_brand](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/iap_brand) | resource |
-| [google_iap_client.oauth_client](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/iap_client) | resource |
-| [google_project.project](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/project) | data source |
+| [google_compute_region_target_http_proxy.internal_proxy](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_region_target_http_proxy) | resource |
+| [google_compute_region_url_map.internal_urlmap](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_region_url_map) | resource |
+| [google_compute_subnetwork.proxy](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/compute_subnetwork) | data source |
+| [google_compute_subnetwork.regional](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/compute_subnetwork) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_container"></a> [container](#input\_container) | Container specification including image, args, env, and ports. | <pre>object({<br/>    image = string<br/>    args  = optional(list(string), [])<br/>    env = optional(list(object({<br/>      name  = string<br/>      value = string<br/>    })), [])<br/>    ports = optional(list(object({<br/>      name           = optional(string, "http1")<br/>      container_port = number<br/>      })), [{<br/>      name           = "http1"<br/>      container_port = 8080<br/>    }])<br/>  })</pre> | n/a | yes |
+| <a name="input_container"></a> [container](#input\_container) | Container specification including image, args, env, and ports. | <pre>object({<br/>    image = string<br/>    args  = optional(list(string), [])<br/>    env = optional(list(object({<br/>      name  = string<br/>      value = string<br/>    })), [])<br/>    /* TODO<br/>    regional-env = optional(list(object({<br/>      name  = string<br/>      value = map(string)<br/>    })), [])<br/>    */<br/>    ports = optional(list(object({<br/>      name           = optional(string, "http1")<br/>      container_port = number<br/>      })), [{<br/>      name           = "http1"<br/>      container_port = 8080<br/>    }])<br/>  })</pre> | n/a | yes |
 | <a name="input_disk_size_gb"></a> [disk\_size\_gb](#input\_disk\_size\_gb) | Boot disk size in GB for each VM. | `number` | n/a | yes |
-| <a name="input_iap"></a> [iap](#input\_iap) | IAP configuration for the backend service. If not provided, a new IAP brand and OAuth client will be created. | <pre>object({<br/>    oauth2_client_id     = string<br/>    oauth2_client_secret = string<br/>  })</pre> | `null` | no |
-| <a name="input_iap_support_email"></a> [iap\_support\_email](#input\_iap\_support\_email) | Support email for IAP brand creation. Required if iap is not provided. | `string` | `""` | no |
+| <a name="input_iap"></a> [iap](#input\_iap) | IAP OAuth2 credentials for the backend service. Must be manually created in the Google Cloud Console (APIs & Services > Credentials). | <pre>object({<br/>    oauth2_client_id     = string<br/>    oauth2_client_secret = string<br/>  })</pre> | n/a | yes |
 | <a name="input_instance_count"></a> [instance\_count](#input\_instance\_count) | Number of instances per regional MIG. | `number` | n/a | yes |
 | <a name="input_labels"></a> [labels](#input\_labels) | Additional labels to apply to resources. | `map(string)` | `{}` | no |
-| <a name="input_lb_frontend_region"></a> [lb\_frontend\_region](#input\_lb\_frontend\_region) | Region for the internal load balancer frontend forwarding rule. | `string` | n/a | yes |
-| <a name="input_lb_proxy_subnet_self_link"></a> [lb\_proxy\_subnet\_self\_link](#input\_lb\_proxy\_subnet\_self\_link) | Proxy-only subnet self-link for the load balancer frontend. | `string` | n/a | yes |
 | <a name="input_machine_type"></a> [machine\_type](#input\_machine\_type) | VM machine type for the instances. | `string` | n/a | yes |
 | <a name="input_name"></a> [name](#input\_name) | Name of the service. Resources will be named 'gce-svc-{name}'. | `string` | n/a | yes |
-| <a name="input_network_self_link"></a> [network\_self\_link](#input\_network\_self\_link) | VPC network self-link (e.g., from module.vpc.network\_self\_link). | `string` | n/a | yes |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | GCP Project ID. | `string` | n/a | yes |
-| <a name="input_regions"></a> [regions](#input\_regions) | List of regions to deploy MIG backends to. | `list(string)` | n/a | yes |
-| <a name="input_service_account_email"></a> [service\_account\_email](#input\_service\_account\_email) | Service account email for the GCE VMs. | `string` | n/a | yes |
+| <a name="input_regions"></a> [regions](#input\_regions) | A map from region names to a network and subnetwork.  A service will be created in each region configured to egress the specified traffic via the specified subnetwork. | <pre>map(object({<br/>    network      = string<br/>    subnet       = string<br/>    proxy_subnet = string<br/>  }))</pre> | n/a | yes |
+| <a name="input_service_account"></a> [service\_account](#input\_service\_account) | Service account email for the GCE VMs. | `string` | n/a | yes |
 | <a name="input_squad"></a> [squad](#input\_squad) | Squad label to apply to resources (for team attribution). | `string` | `""` | no |
-| <a name="input_subnetwork_self_link"></a> [subnetwork\_self\_link](#input\_subnetwork\_self\_link) | Subnet self-link where VMs are placed (e.g., from module.vpc.subnets\_self\_links). | `string` | n/a | yes |
 
 ## Outputs
 
-| Name | Description |
-|------|-------------|
-| <a name="output_backend_service_self_link"></a> [backend\_service\_self\_link](#output\_backend\_service\_self\_link) | The self-link of the backend service, required by a separate ALB Frontend module. |
-| <a name="output_instance_group_self_links"></a> [instance\_group\_self\_links](#output\_instance\_group\_self\_links) | Map of region to MIG instance group self-link. |
-| <a name="output_named_port"></a> [named\_port](#output\_named\_port) | The named port mapping for the service. |
+No outputs.
 <!-- END_TF_DOCS -->

@@ -33,15 +33,13 @@ The IP address should only be used by the authorized service account to access t
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
-| Name | Version |
-|------|---------|
-| <a name="requirement_google"></a> [google](#requirement\_google) | >= 4.79 |
+No requirements.
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_google"></a> [google](#provider\_google) | >= 4.79 |
+| <a name="provider_google"></a> [google](#provider\_google) | n/a |
 
 ## Modules
 
@@ -51,9 +49,9 @@ No modules.
 
 | Name | Type |
 |------|------|
-| [google_iap_web_backend_service_iam_member.authorize-calls](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/iap_web_backend_service_iam_member) | resource |
-| [google_compute_backend_service.backend](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/compute_backend_service) | data source |
+| [google_iap_web_region_backend_service_iam_member.authorize-calls](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/iap_web_region_backend_service_iam_member) | resource |
 | [google_compute_forwarding_rule.internal_alb](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/compute_forwarding_rule) | data source |
+| [google_compute_region_backend_service.backend](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/compute_region_backend_service) | data source |
 
 ## Inputs
 
@@ -62,7 +60,7 @@ No modules.
 | <a name="input_name"></a> [name](#input\_name) | The name of the service (must match the name used in regional-gce-service module). | `string` | n/a | yes |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | The GCP project ID. | `string` | n/a | yes |
 | <a name="input_region"></a> [region](#input\_region) | The region where the internal load balancer frontend forwarding rule is located. | `string` | n/a | yes |
-| <a name="input_service_account"></a> [service\_account](#input\_service\_account) | The email of the service account being authorized to access the internal ALB via IAP. | `string` | n/a | yes |
+| <a name="input_service-account"></a> [service-account](#input\_service-account) | The email of the service account being authorized to access the internal ALB via IAP. | `string` | n/a | yes |
 
 ## Outputs
 

@@ -39,9 +39,25 @@ resource "google_compute_subnetwork" "regional" {
   }
 }
 
+// Create proxy-only subnets for internal load balancers in each region
+resource "google_compute_subnetwork" "proxy" {
+  for_each = {
+    for region in var.regions : region => index(var.regions, region)
+  }
+
+  name    = "${var.name}-proxy-${each.key}"
+  project = var.project_id
+  network = google_compute_network.this.id
+  region  = each.key
+
+  purpose       = "REGIONAL_MANAGED_PROXY"
+  role          = "ACTIVE"
+  ip_cidr_range = cidrsubnet(var.cidr, 8, 128 + var.netnum_offset + each.value)
+}
+
 // Create DNS policy for allow logging.
 resource "google_dns_policy" "dns_logging_policy" {
-  name           = "dns-logging-policy"
+  name           = "${var.name}-dns-logging-policy"
   enable_logging = true
   networks {
     network_url = google_compute_network.this.id

@@ -52,3 +52,42 @@ All modules support both `team` and `squad` variables for backward compatibility
 - `squad` is deprecated but still supported
 - `team` takes precedence if both are provided
 - If neither is specified, both labels default to "unknown"
+
+<!-- BEGIN_TF_DOCS -->
+## Requirements
+
+No requirements.
+
+## Providers
+
+| Name | Version |
+|------|---------|
+| <a name="provider_google"></a> [google](#provider\_google) | n/a |
+| <a name="provider_ko"></a> [ko](#provider\_ko) | n/a |
+
+## Modules
+
+| Name | Source | Version |
+|------|--------|---------|
+| <a name="module_frontend-calls-backend"></a> [frontend-calls-backend](#module\_frontend-calls-backend) | ./modules/authorize-private-gce-service | n/a |
+| <a name="module_networking"></a> [networking](#module\_networking) | ./modules/networking | n/a |
+| <a name="module_regional-gce-service"></a> [regional-gce-service](#module\_regional-gce-service) | ./modules/regional-gce-service | n/a |
+
+## Resources
+
+| Name | Type |
+|------|------|
+| [google_service_account.caller](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_account) | resource |
+| [google_service_account.sa](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_account) | resource |
+| [ko_build.image](https://registry.terraform.io/providers/ko-build/ko/latest/docs/resources/build) | resource |
+
+## Inputs
+
+No inputs.
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| <a name="output_backends"></a> [backends](#output\_backends) | n/a |
+<!-- END_TF_DOCS -->

@@ -5,8 +5,9 @@ output "network_id" {
 output "regional-networks" {
   value = {
     for region in var.regions : region => {
-      network = google_compute_network.this.id
-      subnet  = google_compute_subnetwork.regional[region].name
+      network      = google_compute_network.this.id
+      subnet       = google_compute_subnetwork.regional[region].name
+      proxy_subnet = google_compute_subnetwork.proxy[region].name
     }
   }
 }

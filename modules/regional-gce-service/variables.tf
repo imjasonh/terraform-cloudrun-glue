@@ -12,35 +12,20 @@ variable "project_id" {
 }
 
 variable "regions" {
-  description = "List of regions to deploy MIG backends to."
-  type        = list(string)
+  description = "A map from region names to a network and subnetwork.  A service will be created in each region configured to egress the specified traffic via the specified subnetwork."
+  type = map(object({
+    network      = string
+    subnet       = string
+    proxy_subnet = string
+  }))
 }
 
-variable "network_self_link" {
-  description = "VPC network self-link (e.g., from module.vpc.network_self_link)."
-  type        = string
-}
-
-variable "subnetwork_self_link" {
-  description = "Subnet self-link where VMs are placed (e.g., from module.vpc.subnets_self_links)."
-  type        = string
-}
-
-variable "lb_proxy_subnet_self_link" {
-  description = "Proxy-only subnet self-link for the load balancer frontend."
-  type        = string
-}
-
-variable "lb_frontend_region" {
-  description = "Region for the internal load balancer frontend forwarding rule."
-  type        = string
-}
-
-variable "service_account_email" {
+variable "service_account" {
   description = "Service account email for the GCE VMs."
   type        = string
 }
 
+// TODO variable "containers", to support sidecars
 variable "container" {
   description = "Container specification including image, args, env, and ports."
   type = object({
@@ -50,6 +35,12 @@ variable "container" {
       name  = string
       value = string
     })), [])
+    /* TODO
+    regional-env = optional(list(object({
+      name  = string
+      value = map(string)
+    })), [])
+    */
     ports = optional(list(object({
       name           = optional(string, "http1")
       container_port = number
@@ -76,24 +67,12 @@ variable "instance_count" {
 }
 
 variable "iap" {
-  description = "IAP configuration for the backend service. If not provided, a new IAP brand and OAuth client will be created."
+  description = "IAP OAuth2 credentials for the backend service. Must be manually created in the Google Cloud Console (APIs & Services > Credentials)."
   type = object({
     oauth2_client_id     = string
     oauth2_client_secret = string
   })
-  default   = null
   sensitive = true
-}
-
-variable "iap_support_email" {
-  description = "Support email for IAP brand creation. Required if iap is not provided."
-  type        = string
-  default     = ""
-
-  validation {
-    condition     = var.iap != null || var.iap_support_email != ""
-    error_message = "iap_support_email must be provided when iap is not specified (for IAP brand auto-creation)."
-  }
 }
 
 
@@ -109,3 +88,32 @@ variable "squad" {
   type        = string
   default     = ""
 }
+
+
+
+/* TODO scaling
+variable "scaling" {
+  description = "The scaling configuration for the service."
+  type = object({
+    min_instances                    = optional(number, 0)
+    max_instances                    = optional(number, 100)
+    max_instance_request_concurrency = optional(number)
+  })
+  default = {}
+}*/
+
+
+/* TODO egress
+variable "egress" {
+  type        = string
+  description = <<EOD
+Which type of egress traffic to send through the VPC.
+
+- ALL_TRAFFIC sends all traffic through regional VPC network
+- PRIVATE_RANGES_ONLY sends only traffic to private IP addresses through regional VPC network
+EOD
+  default     = "ALL_TRAFFIC"
+}
+*/
+
+// TODO: notification_channels

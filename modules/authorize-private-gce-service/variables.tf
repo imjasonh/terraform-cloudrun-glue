@@ -16,7 +16,7 @@ variable "region" {
   type        = string
 }
 
-variable "service_account" {
+variable "service-account" {
   description = "The email of the service account being authorized to access the internal ALB via IAP."
   type        = string
 }
