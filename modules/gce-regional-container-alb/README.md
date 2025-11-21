@@ -81,7 +81,7 @@ module "internal_alb" {
   # Required if IAP is not provided
   # iap_support_email = "support@example.com"
 
-  # Optional: Resource Configuration
+  # Required: Resource Configuration
   machine_type   = "e2-medium"
   disk_size_gb   = 20
   instance_count = 2
@@ -97,16 +97,19 @@ module "internal_alb" {
 module "authorize_caller" {
   source = "chainguard-dev/common/infra//modules/authorize-internal-alb-caller"
 
-  project_id           = var.project_id
-  region               = module.internal_alb.lb_frontend_region
-  backend_service_name = module.internal_alb.backend_service_name
-  forwarding_rule_name = module.internal_alb.forwarding_rule_name
-  service_account      = google_service_account.caller.email
+  project_id         = var.project_id
+  prefix             = "my-service"  # Must match the prefix used above
+  lb_frontend_region = module.internal_alb.lb_frontend_region
+  regions            = ["us-central1", "us-east1"]
+  service_account    = google_service_account.caller.email
 }
 
-# Access the service using the IP from the authorize module
-output "service_url" {
-  value = "http://${module.authorize_caller.ip_address}"
+# Access the service in any region
+output "service_urls" {
+  value = {
+    for region, ip in module.authorize_caller.ip_addresses :
+    region => "http://${ip}"
+  }
 }
 ```
 
@@ -156,14 +159,14 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_container"></a> [container](#input\_container) | Container specification including image, args, env, and ports. | <pre>object({<br/>    image = string<br/>    args  = optional(list(string), [])<br/>    env = optional(list(object({<br/>      name  = string<br/>      value = string<br/>    })), [])<br/>    ports = optional(list(object({<br/>      name           = optional(string, "http1")<br/>      container_port = number<br/>      })), [{<br/>      name           = "http1"<br/>      container_port = 8080<br/>    }])<br/>  })</pre> | n/a | yes |
-| <a name="input_disk_size_gb"></a> [disk\_size\_gb](#input\_disk\_size\_gb) | Boot disk size in GB for each VM. | `number` | `20` | no |
+| <a name="input_disk_size_gb"></a> [disk\_size\_gb](#input\_disk\_size\_gb) | Boot disk size in GB for each VM. | `number` | n/a | yes |
 | <a name="input_iap"></a> [iap](#input\_iap) | IAP configuration for the backend service. If not provided, a new IAP brand and OAuth client will be created. | <pre>object({<br/>    oauth2_client_id     = string<br/>    oauth2_client_secret = string<br/>  })</pre> | `null` | no |
 | <a name="input_iap_support_email"></a> [iap\_support\_email](#input\_iap\_support\_email) | Support email for IAP brand creation. Required if iap is not provided. | `string` | `""` | no |
-| <a name="input_instance_count"></a> [instance\_count](#input\_instance\_count) | Number of instances per regional MIG. | `number` | `2` | no |
+| <a name="input_instance_count"></a> [instance\_count](#input\_instance\_count) | Number of instances per regional MIG. | `number` | n/a | yes |
 | <a name="input_labels"></a> [labels](#input\_labels) | Additional labels to apply to resources. | `map(string)` | `{}` | no |
 | <a name="input_lb_frontend_region"></a> [lb\_frontend\_region](#input\_lb\_frontend\_region) | Region for the internal load balancer frontend forwarding rule. | `string` | n/a | yes |
 | <a name="input_lb_proxy_subnet_self_link"></a> [lb\_proxy\_subnet\_self\_link](#input\_lb\_proxy\_subnet\_self\_link) | Proxy-only subnet self-link for the load balancer frontend. | `string` | n/a | yes |
-| <a name="input_machine_type"></a> [machine\_type](#input\_machine\_type) | VM machine type for the instances. | `string` | `"e2-medium"` | no |
+| <a name="input_machine_type"></a> [machine\_type](#input\_machine\_type) | VM machine type for the instances. | `string` | n/a | yes |
 | <a name="input_network_self_link"></a> [network\_self\_link](#input\_network\_self\_link) | VPC network self-link (e.g., from module.vpc.network\_self\_link). | `string` | n/a | yes |
 | <a name="input_prefix"></a> [prefix](#input\_prefix) | Naming prefix for all resources. | `string` | n/a | yes |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | GCP Project ID. | `string` | n/a | yes |

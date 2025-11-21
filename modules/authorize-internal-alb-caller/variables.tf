@@ -6,19 +6,19 @@ variable "project_id" {
   type        = string
 }
 
-variable "region" {
-  description = "The region in which the internal load balancer forwarding rule is located."
+variable "prefix" {
+  description = "The naming prefix used when creating the ALB resources (must match the prefix used in gce-regional-container-alb module)."
   type        = string
 }
 
-variable "backend_service_name" {
-  description = "The name of the backend service to authorize access to."
+variable "lb_frontend_region" {
+  description = "The region where the internal load balancer frontend forwarding rule is located."
   type        = string
 }
 
-variable "forwarding_rule_name" {
-  description = "The name of the internal load balancer forwarding rule."
-  type        = string
+variable "regions" {
+  description = "List of regions where the service is available (used to create the region-to-IP mapping)."
+  type        = list(string)
 }
 
 variable "service_account" {

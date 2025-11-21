@@ -10,17 +10,25 @@ terraform {
   }
 }
 
+// Look up the backend service by name
+data "google_compute_backend_service" "backend" {
+  project = var.project_id
+  name    = "${var.prefix}-backend"
+}
+
+// Grant IAP access to the service account
 resource "google_iap_web_backend_service_iam_member" "authorize-calls" {
   project             = var.project_id
-  web_backend_service = var.backend_service_name
+  web_backend_service = data.google_compute_backend_service.backend.name
   role                = "roles/iap.httpsResourceAccessor"
   member              = "serviceAccount:${var.service_account}"
 }
 
+// Look up the forwarding rule in the frontend region
 data "google_compute_forwarding_rule" "internal_alb" {
   depends_on = [google_iap_web_backend_service_iam_member.authorize-calls]
 
   project = var.project_id
-  name    = var.forwarding_rule_name
-  region  = var.region
+  name    = "${var.prefix}-frontend"
+  region  = var.lb_frontend_region
 }

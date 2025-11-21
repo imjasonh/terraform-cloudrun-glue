@@ -63,19 +63,16 @@ variable "container" {
 variable "machine_type" {
   description = "VM machine type for the instances."
   type        = string
-  default     = "e2-medium"
 }
 
 variable "disk_size_gb" {
   description = "Boot disk size in GB for each VM."
   type        = number
-  default     = 20
 }
 
 variable "instance_count" {
   description = "Number of instances per regional MIG."
   type        = number
-  default     = 2
 }
 
 variable "iap" {
